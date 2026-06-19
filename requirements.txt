@@ -1,0 +1,4 @@
+# Minimal requirements - everything uses standard library
+# Requests handled via urllib (stdlib)
+# JSON parsing via json (stdlib)
+# No external dependencies needed for core automation
