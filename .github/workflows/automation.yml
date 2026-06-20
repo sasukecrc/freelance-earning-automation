@@ -2,9 +2,8 @@ name: Freelance Earning Automation - 24/7
 
 on:
   schedule:
-    # Run every 6 hours (4 times per day)
     - cron: '0 */6 * * *'
-  workflow_dispatch:  # Manual trigger
+  workflow_dispatch:
   push:
     branches: [main]
 
@@ -13,30 +12,24 @@ jobs:
     name: Run Full Automation Cycle
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-      
       - name: Create data directory
         run: mkdir -p data
-      
       - name: Run Full Automation Cycle
         env:
           COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
         run: |
           python workflows/main_orchestrator.py --once 2>&1 | tee automation_output.log
-      
       - name: Save cycle results
         if: always()
         run: |
@@ -44,12 +37,9 @@ jobs:
           echo '```' >> $GITHUB_STEP_SUMMARY
           cat automation_output.log | tail -50 >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-          
-          # Save any tracking data as artifacts
           if [ -f data/applications_tracker.json ]; then
             cp data/applications_tracker.json data/artifacts_tracker.json
           fi
-      
       - name: Upload tracking data as artifacts
         if: always()
         uses: actions/upload-artifact@v4
@@ -60,29 +50,23 @@ jobs:
             automation_output.log
           retention-days: 7
 
-  # Second parallel job - LinkedIn marketing
   linkedin-marketing:
     name: LinkedIn Marketing Post
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-      
       - name: Create data directory
         run: mkdir -p data
-      
       - name: Post LinkedIn Marketing Content
         env:
           COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
@@ -92,25 +76,21 @@ import sys
 sys.path.insert(0, '.')
 from agents.linkedin_marketer import run_linkedin_cycle
 result = run_linkedin_cycle()
-print(f'LinkedIn post published: {result[\"post_published\"]}')
+print(f'LinkedIn post published: {result["post_published"]}')
 " 2>&1
-  
-  # Third job - Check for responses and follow up
+
   check-responses:
-    name: Check Responses & Follow Up
+    name: Check Responses and Follow Up
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: [run-automation]
-    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-      
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      
       - name: Run Earnings Report
         env:
           COMPOSIO_API_KEY: ${{ secrets.COMPOSIO_API_KEY }}
@@ -120,8 +100,8 @@ import sys
 sys.path.insert(0, '.')
 from agents.earnings_tracker import get_earnings_dashboard
 d = get_earnings_dashboard()
-print(f'Total applications: {d[\"total_applications_sent\"]}')
-print(f'Earnings: \${d[\"total_earnings\"]}')
-print(f'Remaining to \$1000: \${d[\"remaining\"]}')
-print(f'Target reached: {d[\"total_earnings\"] >= 1000}')
+print(f'Total applications: {d["total_applications_sent"]}')
+print(f'Earnings: \${d["total_earnings"]}')
+print(f'Remaining to \$1000: \${d["remaining"]}')
+print(f'Target reached: {d["total_earnings"] >= 1000}')
 "
